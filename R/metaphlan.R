@@ -17,7 +17,7 @@ parse_clade_profiles <- function (fn, combine_markers = TRUE) {
         tibble(Clade = clade,
             Gene = genes, Abundance = abundances)
     }
-    parse_tax_rank <- function (clade) {
+    tax_rank <- function (clade) {
         # param `clade` is a string of the form
         # 'k__...|p__...|c__...|o__...|f__...|g__...|s__...|t__...', up to the
         # taxonomic rank
@@ -39,7 +39,7 @@ parse_clade_profiles <- function (fn, combine_markers = TRUE) {
         bind_rows
     # Add the smallest taxonomic rank of the clade
     tb <- tb %>%
-        mutate(Rank = parse_tax_rank(Clade))
+        mutate(Rank = tax_rank(Clade))
     # Get gene lengths
     tb <- tb %>%
         left_join(marker_lengths, 
@@ -54,11 +54,12 @@ parse_clade_profiles <- function (fn, combine_markers = TRUE) {
     } else {
         warning("Reads may not all be integers")
     }
-    # Combine markers
+    # Combine markers.
     if (combine_markers) {
         tb <- tb %>%
             group_by(Clade, Rank) %>%
             summarize(Length = sum(Length), Reads = sum(Reads)) %>%
+            # Weight = reads per kilobase
             mutate(Weight = (Reads / Length) * 1000) %>%
             ungroup()
     }
@@ -66,3 +67,31 @@ parse_clade_profiles <- function (fn, combine_markers = TRUE) {
     tb %>%
         select(Clade, Rank, everything())
 }
+
+
+#' Parse metaphlan clade strings to a taxonomy table
+#' 
+#' @param clade. Vector of clade strings
+#' @param derep. Whether should only have one row per unique clade string
+#' 
+parse_taxonomy <- function (clade, derep = TRUE) {
+    # The clade string has the form
+    # "k__Archaea|p__Euryarchaeota|c__Methanobacteria|o__Methanobacteriales|f__Methanobacteriaceae|g__Methanosphaera|s__Methanosphaera_stadtmanae|t__GCF_000012545"
+    # truncated at whatever the smallest rank is. We want to be able to parse
+    # the clade string for any possible smallest rank, from Kingdom to Strain.
+    rank_letters <- c("k", "p", "c", "o", "f", "g", "s", "t")
+    tax_pattern  <- paste0("(?:", rank_letters, "__(\\w+))?") %>%
+        paste(collapse = "\\|?")
+    if (derep) {
+        tax <- clade %>%
+            unique %>%
+            str_match(tax_pattern)
+    } else {
+        tax <- clade %>%
+            str_match(tax_pattern)
+    }
+    colnames(tax) <- c("Clade", "Kingdom", "Phylum", "Class", "Order", "Family",
+        "Genus", "Species", "Strain")
+    tax %>% as_tibble
+}
+
