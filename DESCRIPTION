@@ -1,0 +1,17 @@
+Package: metaphlanr
+Title: Post-process MetaPhlAn2 output in R
+Version: 0.0.0.9000
+Authors@R: person("Michael", "McLaren", email = "m.mclaren42@gmail.com", 
+    role = c("aut", "cre"))
+Description: This package provides functions for working with MetaPhlAn2
+    "clade_profiles" output in R, in order to perform community composition
+    analyses that require read counts rather than MetaPhlAn2's standard output
+    of relative abundances.
+Depends: R (>= 3.5.0)
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports:
+    magrittr,
+    phyloseq,
+    tidyverse
